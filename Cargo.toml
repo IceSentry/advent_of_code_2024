@@ -1,0 +1,20 @@
+[package]
+name = "advent_of_code_2024"
+version = "0.1.0"
+edition = "2021"
+default-run = "main"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.93"
+dotenvy = "0.15.7"
+serde_scan = "0.4.1"
+ureq = "2.11.0"
+indoc = "2.0.5"
+rayon = "1.10.0"
+sscanf = "0.4.2"
+glam = "0.29.2"
+
