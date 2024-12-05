@@ -1,5 +1,3 @@
-use core::panic;
-
 type Data = Vec<i32>;
 
 fn main() {

@@ -1,12 +1,11 @@
-use core::panic;
 use std::str::Chars;
 
 fn main() {
     let input = std::fs::read_to_string("inputs/day03.txt").unwrap();
     let parsed_input = parse(&input);
-    let result = part_1(&parsed_input);
+    let result = part_1(parsed_input);
     println!("part_1: {result}");
-    let result = part_2(&parsed_input);
+    let result = part_2(parsed_input);
     println!("part_2: {result}");
 }
 
