@@ -42,70 +42,74 @@ fn parse(input: &str) -> (HashMap<IVec2, char>, Bounds) {
             }
         }
     }
-    //for y in bounds.min_y..=bounds.max_y {
-    //    for x in bounds.min_x..=bounds.max_x {
-    //        match map.get(&IVec2::new(x, y)) {
-    //            Some(c) => print!("{c}"),
-    //            None => print!("."),
-    //        }
-    //    }
-    //    println!()
-    //}
     (map, bounds)
 }
 
-fn simulate_path(
-    map: &HashMap<IVec2, char>,
-    bounds: &Bounds,
-    guard_pos: IVec2,
-) -> Option<HashSet<IVec2>> {
-    let mut set = HashSet::default();
+fn check_bounds(pos: IVec2, bounds: &Bounds) -> bool {
+    if pos.x <= bounds.min.x || pos.x >= bounds.max.x {
+        return false;
+    }
+    if pos.y <= bounds.min.y || pos.y >= bounds.max.y {
+        return false;
+    }
+    true
+}
+
+fn rotate_dir(dir: IVec2) -> IVec2 {
+    IVec2::new(-dir.y, dir.x)
+}
+
+fn check_cycles(map: &HashMap<IVec2, char>, bounds: &Bounds, guard_pos: IVec2) -> bool {
     let mut guard_pos = guard_pos;
     let mut dir = IVec2::new(0, -1);
     let mut cycle_tracker = HashSet::default();
     loop {
         let next_pos = guard_pos + dir;
         if cycle_tracker.contains(&(guard_pos, dir)) {
-            return None;
+            return true;
         } else {
             cycle_tracker.insert((guard_pos, dir));
         }
         if let Some('#') = map.get(&next_pos) {
-            // rotate
-            dir = IVec2::new(-dir.y, dir.x);
+            dir = rotate_dir(dir);
             continue;
         }
-        if guard_pos.x <= bounds.min.x || guard_pos.x >= bounds.max.x {
+        if !check_bounds(guard_pos, bounds) {
             break;
         }
-        if guard_pos.y <= bounds.min.y || guard_pos.y >= bounds.max.y {
+        guard_pos = next_pos;
+    }
+    false
+}
+
+fn simulate_path(map: &HashMap<IVec2, char>, bounds: &Bounds, guard_pos: IVec2) -> HashSet<IVec2> {
+    let mut set = HashSet::default();
+    let mut guard_pos = guard_pos;
+    let mut dir = IVec2::new(0, -1);
+    loop {
+        let next_pos = guard_pos + dir;
+        if let Some('#') = map.get(&next_pos) {
+            dir = rotate_dir(dir);
+            continue;
+        }
+        if !check_bounds(guard_pos, bounds) {
             break;
         }
         guard_pos = next_pos;
         set.insert(guard_pos);
     }
-    //for y in bounds.min_y..=bounds.max_y {
-    //    for x in bounds.min_x..=bounds.max_x {
-    //        match (map.get(&IVec2::new(x, y)), set.get(&IVec2::new(x, y))) {
-    //            (None, Some(_)) => print!("X"),
-    //            (Some('#'), None) => print!("#"),
-    //            (Some(_), Some(_)) => print!("#"),
-    //            _ => print!("."),
-    //        }
-    //    }
-    //    println!();
-    //}
-    Some(set)
+    //print_path(map, bounds, &set);
+    set
 }
 
 fn part_1(map: &HashMap<IVec2, char>, bounds: &Bounds) -> i32 {
     let (guard_pos, _guard_char) = map.iter().find(|(_, v)| **v != '#').unwrap();
-    simulate_path(map, bounds, *guard_pos).unwrap().len() as i32
+    simulate_path(map, bounds, *guard_pos).len() as i32
 }
 
 fn part_2(map: &HashMap<IVec2, char>, bounds: &Bounds) -> i32 {
     let (guard_pos, _guard_char) = map.iter().find(|(_, v)| **v != '#').unwrap();
-    let init_path = simulate_path(map, bounds, *guard_pos).unwrap();
+    let init_path = simulate_path(map, bounds, *guard_pos);
     let mut cycles = 0;
     for pos in init_path {
         if pos == *guard_pos {
@@ -113,11 +117,25 @@ fn part_2(map: &HashMap<IVec2, char>, bounds: &Bounds) -> i32 {
         }
         let mut map = map.clone();
         map.insert(pos, '#');
-        if simulate_path(&map, bounds, *guard_pos).is_none() {
+        if check_cycles(&map, bounds, *guard_pos) {
             cycles += 1;
         }
     }
     cycles
+}
+
+fn _print_path(map: &HashMap<IVec2, char>, bounds: &Bounds, path: &HashSet<IVec2>) {
+    for y in bounds.min.y..=bounds.max.y {
+        for x in bounds.min.x..=bounds.max.x {
+            match (map.get(&IVec2::new(x, y)), path.get(&IVec2::new(x, y))) {
+                (None, Some(_)) => print!("X"),
+                (Some('#'), None) => print!("#"),
+                (Some(_), Some(_)) => print!("#"),
+                _ => print!("."),
+            }
+        }
+        println!();
+    }
 }
 
 #[cfg(test)]
