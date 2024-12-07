@@ -1,28 +1,20 @@
+use fxhash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use glam::IVec2;
-//use hashbrown::{HashMap, HashSet};
-//use std::collections::{HashMap, HashSet};
-use fxhash::FxHashMap as HashMap;
-use fxhash::FxHashSet as HashSet;
 
 struct Bounds {
     min: IVec2,
     max: IVec2,
 }
 
-//struct Bounds {
-//    min_x: i32,
-//    max_x: i32,
-//    min_y: i32,
-//    max_y: i32,
-//}
-
 fn main() {
     let input = std::fs::read_to_string("inputs/day06.txt").unwrap();
     let (map, bounds) = parse(&input);
     let result = part_1(&map, &bounds);
     println!("part_1: {result}");
+    let start = std::time::Instant::now();
     let result = part_2(&map, &bounds);
-    println!("part_2: {result}");
+    let elapsed = start.elapsed().as_millis();
+    println!("part_2: {result} {elapsed}ms");
 }
 
 fn parse(input: &str) -> (HashMap<IVec2, char>, Bounds) {
@@ -59,10 +51,36 @@ fn rotate_dir(dir: IVec2) -> IVec2 {
     IVec2::new(-dir.y, dir.x)
 }
 
-fn check_cycles(map: &HashMap<IVec2, char>, bounds: &Bounds, guard_pos: IVec2) -> bool {
+fn simulate_path(map: &HashMap<IVec2, char>, bounds: &Bounds, guard_pos: IVec2) -> HashSet<IVec2> {
+    let mut set = HashSet::default();
+    let mut guard_pos = guard_pos;
+    // guard always starts looking up`
+    let mut dir = IVec2::new(0, -1);
+    loop {
+        let next_pos = guard_pos + dir;
+        if let Some('#') = map.get(&next_pos) {
+            dir = rotate_dir(dir);
+            continue;
+        }
+        if !check_bounds(guard_pos, bounds) {
+            break;
+        }
+        guard_pos = next_pos;
+        set.insert(guard_pos);
+    }
+    //print_path(map, bounds, &set);
+    set
+}
+
+fn check_cycles(
+    map: &HashMap<IVec2, char>,
+    bounds: &Bounds,
+    guard_pos: IVec2,
+    cycle_tracker: &mut HashSet<(IVec2, IVec2)>,
+) -> bool {
     let mut guard_pos = guard_pos;
     let mut dir = IVec2::new(0, -1);
-    let mut cycle_tracker = HashSet::default();
+    cycle_tracker.clear();
     loop {
         let next_pos = guard_pos + dir;
         if cycle_tracker.contains(&(guard_pos, dir)) {
@@ -82,26 +100,6 @@ fn check_cycles(map: &HashMap<IVec2, char>, bounds: &Bounds, guard_pos: IVec2) -
     false
 }
 
-fn simulate_path(map: &HashMap<IVec2, char>, bounds: &Bounds, guard_pos: IVec2) -> HashSet<IVec2> {
-    let mut set = HashSet::default();
-    let mut guard_pos = guard_pos;
-    let mut dir = IVec2::new(0, -1);
-    loop {
-        let next_pos = guard_pos + dir;
-        if let Some('#') = map.get(&next_pos) {
-            dir = rotate_dir(dir);
-            continue;
-        }
-        if !check_bounds(guard_pos, bounds) {
-            break;
-        }
-        guard_pos = next_pos;
-        set.insert(guard_pos);
-    }
-    //print_path(map, bounds, &set);
-    set
-}
-
 fn part_1(map: &HashMap<IVec2, char>, bounds: &Bounds) -> i32 {
     let (guard_pos, _guard_char) = map.iter().find(|(_, v)| **v != '#').unwrap();
     simulate_path(map, bounds, *guard_pos).len() as i32
@@ -111,13 +109,14 @@ fn part_2(map: &HashMap<IVec2, char>, bounds: &Bounds) -> i32 {
     let (guard_pos, _guard_char) = map.iter().find(|(_, v)| **v != '#').unwrap();
     let init_path = simulate_path(map, bounds, *guard_pos);
     let mut cycles = 0;
+    let mut cycle_tracker = HashSet::default();
     for pos in init_path {
         if pos == *guard_pos {
             continue;
         }
         let mut map = map.clone();
         map.insert(pos, '#');
-        if check_cycles(&map, bounds, *guard_pos) {
+        if check_cycles(&map, bounds, *guard_pos, &mut cycle_tracker) {
             cycles += 1;
         }
     }
