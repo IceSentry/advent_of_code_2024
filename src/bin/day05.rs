@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 fn main() {
     let input = std::fs::read_to_string("inputs/day05.txt").unwrap();
     let parsed_input = parse(&input);
